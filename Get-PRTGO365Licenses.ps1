@@ -54,6 +54,7 @@ Author:  Marc Debold
 Version: 1.3
 Version History:
     1.3  31.10.2016  Fixed time offset issue
+                     Changed XML output
     1.2  31.10.2016  Code cleanup
                      Changed output to absolute numbers
                      Added consumed units
@@ -106,7 +107,7 @@ if ($env:PROCESSOR_ARCHITECTURE -eq "x86") {
 }
 
 #Initialize varaibles
-$Result = $null
+$Result = @()
 $SyncStats = @{
     TimeSinceLastDirSync = $null;
     TimeSinceLastPassSync = $null
@@ -118,225 +119,42 @@ function New-PrtgError {
         [Parameter(Position=0)][string] $ErrorText
     )
 
-    Write-Host "<prtg>
-    <error>1</error>
-    <text>$ErrorText</text>
-</prtg>"
+    Write-Host "<PRTG>
+    <Error>1</Error>
+    <Text>$ErrorText</Text>
+</PRTG>"
     Exit
 }
 
-<# Function to form XML and print it to host #>
 function Out-Prtg {
     [CmdletBinding()] param(
-        [Parameter(Position=0, Mandatory=$true)] $MonitoringData,
-        [Parameter(Position=1, Mandatory=$true)] $DirSyncData
+        [Parameter(Position=0, Mandatory=$true, ValueFromPipeline=$true)][array] $MonitoringData
     )
-    <# Create output for PRTG #>
+    # Create output for PRTG
     $XmlDocument = New-Object System.XML.XMLDocument
-    $XmlRoot = $XmlDocument.CreateElement("prtg")
+    $XmlRoot = $XmlDocument.CreateElement("PRTG")
     $XmlDocument.appendChild($XmlRoot) | Out-Null
-    # Add DirSync info if avaialbe
-    if ($DirSyncData.TimeSinceLastDirSync -ne $null) {
+    # Cycle through outer array
+    foreach ($Result in $MonitoringData) {
+        # Create result-node
         $XmlResult = $XmlRoot.appendChild(
-            $XmlDocument.CreateElement("result")
+            $XmlDocument.CreateElement("Result")
         )
-        # Channel: Time since last DirSync
-        $XmlKey = $XmlDocument.CreateElement("channel")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode("Time since last DirSync")    
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Value: Hours
-        $XmlKey = $XmlDocument.CreateElement("value")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode($DirSyncData.TimeSinceLastDirSync)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Unit: TimeHours
-        $XmlKey = $XmlDocument.CreateElement("unit")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode("TimeHours")
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Float: 1
-        $XmlKey = $XmlDocument.CreateElement("float")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(1)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # DecimalMode: 2
-        $XmlKey = $XmlDocument.CreateElement("decimalmode")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(2)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Limitmaxwarning: 1
-        $XmlKey = $XmlDocument.CreateElement("limitmaxwarning")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(12)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Limitmode: 1
-        $XmlKey = $XmlDocument.CreateElement("limitmode")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(1)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Cycle though inner hashtable
+        $Result.GetEnumerator() | ForEach-Object {
+            # Use key of hashtable as XML element
+            $XmlKey = $XmlDocument.CreateElement($_.key)
+            $XmlKey.AppendChild(
+                # Use value of hashtable as XML textnode
+                $XmlDocument.CreateTextNode($_.value)    
+            ) | Out-Null
+            $XmlResult.AppendChild($XmlKey) | Out-Null
+        }
     }
-
-    # Add DirSync info if avaialbe
-    if ($DirSyncData.TimeSinceLastPassSync -ne $null) {
-        $XmlResult = $XmlRoot.appendChild(
-            $XmlDocument.CreateElement("result")
-        )
-        # Channel: Time since last PassSync
-        $XmlKey = $XmlDocument.CreateElement("channel")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode("Time since last password sync")    
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Value: Hours
-        $XmlKey = $XmlDocument.CreateElement("value")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode($DirSyncData.TimeSinceLastPassSync)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Unit: TimeHours
-        $XmlKey = $XmlDocument.CreateElement("unit")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode("TimeHours")
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Float: 1
-        $XmlKey = $XmlDocument.CreateElement("float")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(1)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # DecimalMode: 2
-        $XmlKey = $XmlDocument.CreateElement("decimalmode")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(2)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Limitmaxwarning: 1
-        $XmlKey = $XmlDocument.CreateElement("limitmaxwarning")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(12)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Limitmode: 1
-        $XmlKey = $XmlDocument.CreateElement("limitmode")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(1)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-    }
-
-    # Add license information
-    foreach ($Item in $MonitoringData) {
-        # Available Count
-        $XmlResult = $XmlRoot.appendChild(
-            $XmlDocument.CreateElement("result")
-        )
-        # Channel: Available licenses
-        $XmlKey = $XmlDocument.CreateElement("channel")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode("$($Item.Id) - Available Licenses")    
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Value: Count
-        $XmlKey = $XmlDocument.CreateElement("value")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode($Item.Available)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Limitminwarning: 5
-        $XmlKey = $XmlDocument.CreateElement("limitminwarning")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(5)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Limitminerror: 1
-        $XmlKey = $XmlDocument.CreateElement("Limitminerror")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(1)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Limitmode: 1
-        $XmlKey = $XmlDocument.CreateElement("limitmode")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(1)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-
-        # Warning Count
-        $XmlResult = $XmlRoot.appendChild(
-            $XmlDocument.CreateElement("result")
-        )
-        # Channel: Warning Licenses
-        $XmlKey = $XmlDocument.CreateElement("channel")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode("$($Item.Id) - Warning Licenses")    
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Value: Count
-        $XmlKey = $XmlDocument.CreateElement("value")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode($Item.Warning)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Limitmaxwarning: 0
-        $XmlKey = $XmlDocument.CreateElement("limitmaxwarning")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(0)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Limitmode: 1
-        $XmlKey = $XmlDocument.CreateElement("limitmode")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode(1)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-
-        # Active Count
-        $XmlResult = $XmlRoot.appendChild(
-            $XmlDocument.CreateElement("result")
-        )
-        # Channel: Active Licenses
-        $XmlKey = $XmlDocument.CreateElement("channel")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode("$($Item.Id) - Active Licenses")    
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Value: Count
-        $XmlKey = $XmlDocument.CreateElement("value")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode($Item.Active)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-
-        # Consumed Count
-        $XmlResult = $XmlRoot.appendChild(
-            $XmlDocument.CreateElement("result")
-        )
-        # Channel: Active Licenses
-        $XmlKey = $XmlDocument.CreateElement("channel")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode("$($Item.Id) - Consumed Licenses")    
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        # Value: Count
-        $XmlKey = $XmlDocument.CreateElement("value")
-        $XmlKey.AppendChild(
-            $XmlDocument.CreateTextNode($Item.Consumed)
-        ) | Out-Null
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-    }
-    <# Format XML output #>
+    # Format XML output
     $StringWriter = New-Object System.IO.StringWriter 
     $XmlWriter = New-Object System.XMl.XmlTextWriter $StringWriter 
-    $XmlWriter.Formatting = “indented” 
+    $XmlWriter.Formatting = "indented"
     $XmlWriter.Indentation = 1
     $XmlWriter.IndentChar = "`t" 
     $XmlDocument.WriteContentTo($XmlWriter) 
@@ -369,6 +187,34 @@ $RawSkus = Get-MsolAccountSku
 if ($ShowMySkus) {
     $RawSkus | ft -AutoSize
 } else {
+    # Check for DirSync statistics
+    try {
+        $CompanyInfo = Get-MsolCompanyInformation -ErrorAction Stop
+    } catch {
+        New-PrtgError -ErrorText "Unable to retrieve company information"
+    }
+    if ($CompanyInfo.DirectorySynchronizationEnabled) {
+        $Result += @{
+            Channel = "Time since last DirSync";
+            Value = [math]::Round(((Get-Date).ToUniversalTime() - $CompanyInfo.LastDirSyncTime).TotalHours, 2);
+            Unit = "TimeHours";
+            Float = 1;
+            DecimalMode = 2;
+            LimitMaxWarning = 12;
+            LimitMode = 1
+        }
+    }
+    if ($CompanyInfo.PasswordSynchronizationEnabled) {
+        $Result += @{
+            Channel = "Time since last password sync";
+            Value = [math]::Round(((Get-Date).ToUniversalTime() - $CompanyInfo.LastPasswordSyncTime).TotalHours, 2);
+            Unit = "TimeHours";
+            Float = 1;
+            DecimalMode = 2;
+            LimitMaxWarning = 12;
+            LimitMode = 1
+        }
+    }
     # Check license count
     if ($RawSkus.Count -gt 0) {
         # Process includes or excludes of skus
@@ -380,34 +226,36 @@ if ($ShowMySkus) {
         # See, if there still are skus to process
         if (($Skus | measure).Count -gt 0) {
             # Fetch stats into array
-            $Result = @()
             foreach ($Sku in $Skus) {
                 $Result += @{
-                    Id = [string]$Sku.AccountSkuId; 
-                    Active = [int]$Sku.ActiveUnits;
-                    Consumed = [int]$Sku.ConsumedUnits;
-                    Warning = [int]$Sku.WarnungUnits;
-                    Available = [int]($Sku.ActiveUnits - $Sku.ConsumedUnits)
+                    Channel = "$($Sku.AccountSkuId) - Available Licenses";
+                    Value = [int]($Sku.ActiveUnits - $Sku.ConsumedUnits);
+                    LimitMinWarning = 5;
+                    LimitMinError = 1;
+                    LimitMode = 1
+                }
+                $Result += @{
+                    Channel = "$($Sku.AccountSkuId) - Warning Licenses";
+                    Value = [int]$Sku.WarnungUnits;
+                    LimitMaxWarning = 0;
+                    LimitMode = 1
+                }
+                $Result += @{
+                    Channel = "$($Sku.AccountSkuId) - Active Licenses";
+                    Value = [int]$Sku.ActiveUnits
+                }
+                $Result += @{
+                    Channel = "$($Sku.AccountSkuId) - Consumed Licenses";
+                    Value = [int]$Sku.ConsumedUnits
                 }
             }
         } else {
             New-PrtgError -ErrorText "No Skus found"
         }
-        # Check for DirSync statistics
-        try {
-            $CompanyInfo = Get-MsolCompanyInformation -ErrorAction Stop
-        } catch {
-            New-PrtgError -ErrorText "Unable to retrieve company information"
-        }
-        if ($CompanyInfo.DirectorySynchronizationEnabled) {
-            $SyncStats.TimeSinceLastDirSync = [math]::Round(((Get-Date).ToUniversalTime() - $CompanyInfo.LastDirSyncTime).TotalHours, 2)
-        }
-        if ($CompanyInfo.PasswordSynchronizationEnabled) {
-            $SyncStats.TimeSinceLastDirSync = [math]::Round(((Get-Date).ToUniversalTime() - $CompanyInfo.LastPasswordSyncTime).TotalHours, 2)
-        }
-        if ($Result -ne $null) {
-            Write-Output (Out-Prtg -MonitoringData $Result -DirSyncData $SyncStats)
-            Start-Sleep 0 # For vscode debugging only
-        }
     }
+    if ($Result -ne $null) {
+        Out-Prtg -MonitoringData $Result
+        Start-Sleep 0 # For vscode debugging only
+    }
+
 }
