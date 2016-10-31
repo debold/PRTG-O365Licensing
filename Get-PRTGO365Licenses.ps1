@@ -3,7 +3,8 @@
 Retrieves current license information from Office 365 tenant in PRTG compatible format
 
 .DESCRIPTION
-The Get-Office365License.ps1 uses Office 365 Power Shell extensions to retrieve available licensing information for your Office 365 tenant. The XML output can be used as PRTG custom sensor.
+The Get-Office365License.ps1 uses Office 365 Power Shell extensions to retrieve available licensing information for your Office 365 tenant. 
+The XML output can be used as PRTG custom sensor.
 
 .PARAMETER O365User
 Represents the username for connecting to your Office 365 tenant. See NOTES section for more details.
@@ -50,8 +51,12 @@ You need to install the Microsoft Online Services-Sign in assistant (http://go.m
 (http://go.microsoft.com/fwlink/p/?linkid=236297) on the probe device in order to get this script to work. More details see link below.
 
 Author:  Marc Debold
-Version: 1.1
+Version: 1.2
 Version History:
+    1.2  31.10.2016  Code cleanup
+                     Changed output to absolute numbers
+                     Added consumed units
+                     Added monitoring of last DirSync (and password sync) if available
     1.1  29.10.2016  Added workaround for PRTG running PS scripts in x86 environment only
                      Launching separate PowerShell process in x64 environment using sysnative folder
     1.0  16.10.2016  Initial release
@@ -70,7 +75,6 @@ http://go.microsoft.com/fwlink/p/?linkid=236297
 
 .LINK
 http://www.team-debold.de/2016/10/16/prtg-office-365-lizenzen-im-blick/ ‎
-
 #>
 
 [CmdletBinding()] param(
@@ -95,17 +99,20 @@ if ($env:PROCESSOR_ARCHITECTURE -eq "x86") {
     if ($ShowMySkus) {
         $ScriptParameter += "-ShowMySkus "
     }
+    # Use Sysnative virtual directory on 64-bit machines
     Invoke-Expression "$env:windir\sysnative\WindowsPowerShell\v1.0\powershell.exe -file '$($MyInvocation.MyCommand.Definition)' $ScriptParameter"
     Exit
 }
 
 #Initialize varaibles
-$IsError = $false
-$ErrorText = ""
 $Result = $null
+$SyncStats = @{
+    TimeSinceLastDirSync = $null;
+    TimeSinceLastPassSync = $null
+}
 
 <# Function to raise error in PRTG style and stop script #>
-function Raise-MyError {
+function New-PrtgError {
     [CmdletBinding()] param(
         [Parameter(Position=0)][string] $ErrorText
     )
@@ -120,80 +127,210 @@ function Raise-MyError {
 <# Function to form XML and print it to host #>
 function Out-Prtg {
     [CmdletBinding()] param(
-        [Parameter(Position=0, Mandatory=$true)] $MonitoringData
+        [Parameter(Position=0, Mandatory=$true)] $MonitoringData,
+        [Parameter(Position=1, Mandatory=$true)] $DirSyncData
     )
-
     <# Create output for PRTG #>
     $XmlDocument = New-Object System.XML.XMLDocument
     $XmlRoot = $XmlDocument.CreateElement("prtg")
     $XmlDocument.appendChild($XmlRoot) | Out-Null
+    # Add DirSync info if avaialbe
+    if ($DirSyncData.TimeSinceLastDirSync -ne $null) {
+        $XmlResult = $XmlRoot.appendChild(
+            $XmlDocument.CreateElement("result")
+        )
+        # Channel: Time since last DirSync
+        $XmlKey = $XmlDocument.CreateElement("channel")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode("Time since last DirSync")    
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Value: Hours
+        $XmlKey = $XmlDocument.CreateElement("value")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode($DirSyncData.TimeSinceLastDirSync)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Unit: TimeHours
+        $XmlKey = $XmlDocument.CreateElement("unit")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode("TimeHours")
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Float: 1
+        $XmlKey = $XmlDocument.CreateElement("float")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(1)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # DecimalMode: 2
+        $XmlKey = $XmlDocument.CreateElement("decimalmode")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(2)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Limitmaxwarning: 1
+        $XmlKey = $XmlDocument.CreateElement("limitmaxwarning")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(12)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Limitmode: 1
+        $XmlKey = $XmlDocument.CreateElement("limitmode")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(1)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+    }
+
+    # Add DirSync info if avaialbe
+    if ($DirSyncData.TimeSinceLastPassSync -ne $null) {
+        $XmlResult = $XmlRoot.appendChild(
+            $XmlDocument.CreateElement("result")
+        )
+        # Channel: Time since last PassSync
+        $XmlKey = $XmlDocument.CreateElement("channel")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode("Time since last password sync")    
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Value: Hours
+        $XmlKey = $XmlDocument.CreateElement("value")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode($DirSyncData.TimeSinceLastPassSync)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Unit: TimeHours
+        $XmlKey = $XmlDocument.CreateElement("unit")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode("TimeHours")
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Float: 1
+        $XmlKey = $XmlDocument.CreateElement("float")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(1)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # DecimalMode: 2
+        $XmlKey = $XmlDocument.CreateElement("decimalmode")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(2)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Limitmaxwarning: 1
+        $XmlKey = $XmlDocument.CreateElement("limitmaxwarning")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(12)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Limitmode: 1
+        $XmlKey = $XmlDocument.CreateElement("limitmode")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(1)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+    }
+
+    # Add license information
     foreach ($Item in $MonitoringData) {
         # Available Count
-        $XmlResult = $XmlRoot.appendChild($XmlDocument.CreateElement("result"))
+        $XmlResult = $XmlRoot.appendChild(
+            $XmlDocument.CreateElement("result")
+        )
+        # Channel: Available licenses
         $XmlKey = $XmlDocument.CreateElement("channel")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode("$($Item.Id) - Available Licenses")    
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode("$($Item.Id) - Available Licenses")
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+        # Value: Count
         $XmlKey = $XmlDocument.CreateElement("value")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode($Item.Available)
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode($Item.Available)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
-        $XmlKey = $XmlDocument.CreateElement("unit")
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode("percent")
-        $XmlKey.AppendChild($XmlValue) | Out-Null
-        $XmlKey = $XmlDocument.CreateElement("float")
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode(1)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+        # Limitminwarning: 5
         $XmlKey = $XmlDocument.CreateElement("limitminwarning")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(5)
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode(20)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
-        $XmlKey = $XmlDocument.CreateElement("limitminerror")
+        # Limitminerror: 1
+        $XmlKey = $XmlDocument.CreateElement("Limitminerror")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(1)
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode(10)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+        # Limitmode: 1
         $XmlKey = $XmlDocument.CreateElement("limitmode")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(1)
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode(1)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+
         # Warning Count
-        $XmlResult = $XmlRoot.appendChild($XmlDocument.CreateElement("result"))
+        $XmlResult = $XmlRoot.appendChild(
+            $XmlDocument.CreateElement("result")
+        )
+        # Channel: Warning Licenses
         $XmlKey = $XmlDocument.CreateElement("channel")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode("$($Item.Id) - Warning Licenses")    
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode("$($Item.Id) - Warning Licenses")
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+        # Value: Count
         $XmlKey = $XmlDocument.CreateElement("value")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode($Item.Warning)
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode($Item.Warning)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
-        $XmlKey = $XmlDocument.CreateElement("unit")
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode("percent")
-        $XmlKey.AppendChild($XmlValue) | Out-Null
-        $XmlKey = $XmlDocument.CreateElement("float")
-        $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode(1)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+        # Limitmaxwarning: 0
         $XmlKey = $XmlDocument.CreateElement("limitmaxwarning")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(0)
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode(0)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+        # Limitmode: 1
         $XmlKey = $XmlDocument.CreateElement("limitmode")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode(1)
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode(1)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+
         # Active Count
-        $XmlResult = $XmlRoot.appendChild($XmlDocument.CreateElement("result"))
+        $XmlResult = $XmlRoot.appendChild(
+            $XmlDocument.CreateElement("result")
+        )
+        # Channel: Active Licenses
         $XmlKey = $XmlDocument.CreateElement("channel")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode("$($Item.Id) - Active Licenses")    
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode("$($Item.Id) - Active Licenses")
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+        # Value: Count
         $XmlKey = $XmlDocument.CreateElement("value")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode($Item.Active)
+        ) | Out-Null
         $XmlResult.AppendChild($XmlKey) | Out-Null
-        $XmlValue = $XmlDocument.CreateTextNode($Item.Active)
-        $XmlKey.AppendChild($XmlValue) | Out-Null
+
+        # Consumed Count
+        $XmlResult = $XmlRoot.appendChild(
+            $XmlDocument.CreateElement("result")
+        )
+        # Channel: Active Licenses
+        $XmlKey = $XmlDocument.CreateElement("channel")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode("$($Item.Id) - Consumed Licenses")    
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
+        # Value: Count
+        $XmlKey = $XmlDocument.CreateElement("value")
+        $XmlKey.AppendChild(
+            $XmlDocument.CreateTextNode($Item.Consumed)
+        ) | Out-Null
+        $XmlResult.AppendChild($XmlKey) | Out-Null
     }
     <# Format XML output #>
     $StringWriter = New-Object System.IO.StringWriter 
@@ -204,7 +341,6 @@ function Out-Prtg {
     $XmlDocument.WriteContentTo($XmlWriter) 
     $XmlWriter.Flush() 
     $StringWriter.Flush() 
-
     Return $StringWriter.ToString() 
 }
 
@@ -215,14 +351,14 @@ $O365Cred = New-Object System.Management.Automation.PSCredential -ArgumentList $
 try {
     Import-Module MSOnline -ErrorAction Stop
 } catch {
-    Raise-MyError "Could not load PowerShell Module MSOnline"
+    New-PrtgError -ErrorText "Could not load PowerShell Module MSOnline"
 }
 
 # Connect to Office 365 using provided credential
 try {
     Connect-MsolService -Credential $O365Cred -ErrorAction Stop
 } catch {
-    Raise-MyError "Error connecting to your tenant. Please check credentials"
+    New-PrtgError -ErrorText "Error connecting to your tenant. Please check credentials"
 }
 
 # Get all licenses
@@ -248,15 +384,28 @@ if ($ShowMySkus) {
                 $Result += @{
                     Id = [string]$Sku.AccountSkuId; 
                     Active = [int]$Sku.ActiveUnits;
-                    Warning = [math]::Round($Sku.WarnungUnits/$Sku.ActiveUnits*100, 2);
-                    Available = [math]::Round(($Sku.ActiveUnits - $Sku.ConsumedUnits)/$Sku.ActiveUnits*100, 2)
+                    Consumed = [int]$Sku.ConsumedUnits;
+                    Warning = [int]$Sku.WarnungUnits;
+                    Available = [int]($Sku.ActiveUnits - $Sku.ConsumedUnits)
                 }
             }
         } else {
-            Raise-MyError "No Skus found"
+            New-PrtgError -ErrorText "No Skus found"
+        }
+        # Check for DirSync statistics
+        try {
+            $CompanyInfo = Get-MsolCompanyInformation -ErrorAction Stop
+        } catch {
+            New-PrtgError -ErrorText "Unable to retrieve company information"
+        }
+        if ($CompanyInfo.DirectorySynchronizationEnabled) {
+            $SyncStats.TimeSinceLastDirSync = [math]::Round(((Get-Date) - $CompanyInfo.LastDirSyncTime).TotalHours, 2)
+        }
+        if ($CompanyInfo.PasswordSynchronizationEnabled) {
+            $SyncStats.TimeSinceLastDirSync = [math]::Round(((Get-Date) - $CompanyInfo.LastPasswordSyncTime).TotalHours, 2)
         }
         if ($Result -ne $null) {
-            Out-Prtg -MonitoringData $Result
+            Write-Output (Out-Prtg -MonitoringData $Result -DirSyncData $SyncStats)
         }
     }
 }
