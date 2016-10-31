@@ -51,8 +51,9 @@ You need to install the Microsoft Online Services-Sign in assistant (http://go.m
 (http://go.microsoft.com/fwlink/p/?linkid=236297) on the probe device in order to get this script to work. More details see link below.
 
 Author:  Marc Debold
-Version: 1.2
+Version: 1.3
 Version History:
+    1.3  31.10.2016  Fixed time offset issue
     1.2  31.10.2016  Code cleanup
                      Changed output to absolute numbers
                      Added consumed units
@@ -399,13 +400,14 @@ if ($ShowMySkus) {
             New-PrtgError -ErrorText "Unable to retrieve company information"
         }
         if ($CompanyInfo.DirectorySynchronizationEnabled) {
-            $SyncStats.TimeSinceLastDirSync = [math]::Round(((Get-Date) - $CompanyInfo.LastDirSyncTime).TotalHours, 2)
+            $SyncStats.TimeSinceLastDirSync = [math]::Round(((Get-Date).ToUniversalTime() - $CompanyInfo.LastDirSyncTime).TotalHours, 2)
         }
         if ($CompanyInfo.PasswordSynchronizationEnabled) {
-            $SyncStats.TimeSinceLastDirSync = [math]::Round(((Get-Date) - $CompanyInfo.LastPasswordSyncTime).TotalHours, 2)
+            $SyncStats.TimeSinceLastDirSync = [math]::Round(((Get-Date).ToUniversalTime() - $CompanyInfo.LastPasswordSyncTime).TotalHours, 2)
         }
         if ($Result -ne $null) {
             Write-Output (Out-Prtg -MonitoringData $Result -DirSyncData $SyncStats)
+            Start-Sleep 0 # For vscode debugging only
         }
     }
 }
