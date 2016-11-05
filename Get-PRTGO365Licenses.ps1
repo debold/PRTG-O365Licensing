@@ -76,7 +76,7 @@ Download: Azure Active Directory-Modul für Windows PowerShell (64-Bit-Version)
 http://go.microsoft.com/fwlink/p/?linkid=236297
 
 .LINK
-http://www.team-debold.de/2016/10/16/prtg-office-365-lizenzen-im-blick/ ‎
+http://www.team-debold.de/2016/11/05/prtg-office-365-lizenzen-im-blick/
 #>
 
 [CmdletBinding()] param(
