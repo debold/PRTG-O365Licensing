@@ -6,6 +6,7 @@ three channels are created:
 * Number of used licenses
 * Number of consumed licenses
 * Number of licenses in warning state
+* Time since last DirSync (if applicable)
+* Time since last PasswordSync (if applicable)
 
-Additionally, the time since last DirSync is displayed, too. If password synchronisation is enabled, this is shown
-in a separate channel.
+For detailed information, please visit http://www.team-debold.de/2016/11/05/prtg-office-365-lizenzen-im-blick/
