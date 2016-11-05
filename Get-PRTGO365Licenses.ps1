@@ -90,7 +90,6 @@ http://www.team-debold.de/2016/10/16/prtg-office-365-lizenzen-im-blick/ ‎
 #Check for 32 bit environment
 if ($env:PROCESSOR_ARCHITECTURE -eq "x86") {
     # Launch script in 64 bit environment
-    $cmd = "$($env:SystemRoot)\sysnative\windowspowershell\v1.0\powershell.exe"
     $ScriptParameter = "-O365User '$O365User' -O365Pass '$O365Pass' "
     if ($IncludeSku -ne $null) {
         $ScriptParameter += "-IncludeSku '$($IncludeSku -join "','")' "
