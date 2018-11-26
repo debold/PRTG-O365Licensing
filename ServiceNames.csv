@@ -1,0 +1,69 @@
+ShortName;LongName
+MCOMEETADV;Audio Conferencing
+AAD_BASIC;Azure Active Directory Basic
+AAD_PREMIUM;Azure Active Directory Premium P1
+AAD_PREMIUM_P2;Azure Active Directory Premium P2
+RIGHTSMANAGEMENT;Azure Information Protection Plan 1
+DYN365_ENTERPRISE_PLAN1;Dynamics 365 Customer Engagement Plan Enterprise Edition
+DYN365_ENTERPRISE_CUSTOMER_SERVICE;Dynamics 365 For Customer Service Enterprise Edition
+DYN365_FINANCIALS_BUSINESS_SKU;Dynamics 365 For Financials Business Edition
+DYN365_ENTERPRISE_SALES_CUSTOMERSERVICE;Dynamics 365 For Sales And Customer Service Enterprise Edition
+DYN365_ENTERPRISE_SALES;Dynamics 365 For Sales Enterprise Edition
+DYN365_ENTERPRISE_TEAM_MEMBERS;Dynamics 365 For Team Members Enterprise Edition
+Dynamics_365_for_Operations;Dynamics 365 Unf Ops Plan Ent Edition
+EMS;Enterprise Mobility + Security E3
+EMSPREMIUM;Enterprise Mobility + Security E5
+EXCHANGESTANDARD;Exchange Online (Plan 1)
+EXCHANGEENTERPRISE;Exchange Online (Plan 2)
+EXCHANGEARCHIVE_ADDON;Exchange Online Archiving For Exchange Online
+EXCHANGEARCHIVE;Exchange Online Archiving For Exchange Server
+EXCHANGEESSENTIALS;Exchange Online Essentials
+EXCHANGE_S_ESSENTIALS;Exchange Online Essentials
+EXCHANGEDESKLESS;Exchange Online Kiosk
+EXCHANGETELCO;Exchange Online Pop
+INTUNE_A;Intune
+SPB;Microsoft 365 Business
+SPE_E3;Microsoft 365 E3
+CRMPLAN2;Microsoft Dynamics Crm Online Basic
+CRMSTANDARD;Microsoft Dynamics Crm Online
+INTUNE_A;Microsoft Intune A Direct
+IT_ACADEMY_AD;Ms Imagine Academy
+O365_BUSINESS;Office 365 Business
+SMB_BUSINESS;Office 365 Business
+O365_BUSINESS_ESSENTIALS;Office 365 Business Essentials
+SMB_BUSINESS_ESSENTIALS;Office 365 Business Essentials
+O365_BUSINESS_PREMIUM;Office 365 Business Premium
+SMB_BUSINESS_PREMIUM;Office 365 Business Premium
+STANDARDPACK;Office 365 Enterprise E1
+STANDARDWOFFPACK;Office 365 Enterprise E2
+ENTERPRISEPACK;Office 365 Enterprise E3
+DEVELOPERPACK;Office 365 Enterprise E3 Developer
+ENTERPRISEWITHSCAL;Office 365 Enterprise E4
+ENTERPRISEPREMIUM;Office 365 Enterprise E5
+ENTERPRISEPREMIUM_NOPSTNCONF;Office 365 Enterprise E5 Without Audio Conferencing
+DESKLESSPACK;Office 365 F1
+MIDSIZEPACK;Office 365 Midsize Business
+OFFICESUBSCRIPTION;Office 365 Proplus
+LITEPACK;Office 365 Small Business
+LITEPACK_P2;Office 365 Small Business Premium
+WACONEDRIVESTANDARD;Onedrive For Business (Plan 1)
+WACONEDRIVEENTERPRISE;Onedrive For Business (Plan 2)
+POWER_BI_ADDON;Power Bi For Office 365 Add-On
+POWER_BI_PRO;Power Bi Pro
+PROJECTCLIENT;Project For Office 365
+PROJECTESSENTIALS;Project Online Essentials
+PROJECTPREMIUM;Project Online Premium
+PROJECTONLINE_PLAN_1;Project Online Premium Without Project Client
+PROJECTPROFESSIONAL;Project Online Professional
+PROJECTONLINE_PLAN_2;Project Online With Project For Office 365
+SHAREPOINTSTANDARD;Sharepoint Online (Plan 1)
+SHAREPOINTENTERPRISE;Sharepoint Online (Plan 2)
+MCOEV;Skype For Business Cloud Pbx
+MCOIMP;Skype For Business Online (Plan 1)
+MCOSTANDARD;Skype For Business Online (Plan 2)
+MCOMEETADV;Skype For Business Pstn Conferencing
+MCOPSTN2;Skype For Business Pstn Domestic And International Calling
+MCOPSTN1;Skype For Business Pstn Domestic Calling
+VISIOONLINE_PLAN1;Visio Online Plan 1
+VISIOCLIENT;Visio Online Plan 2
+WIN10_PRO_ENT_SUB;Windows 10 Enterprise E3
