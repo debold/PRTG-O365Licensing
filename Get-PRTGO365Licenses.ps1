@@ -44,15 +44,20 @@ Get-Office365License.ps1 -O365User "User@Tenant.onmicrosoft.com" -O365Pass "TopS
 
 .EXAMPLE
 Get license count for all of your SKUs, except for POWERBI.
-Get-Office365License.ps1 -O365User "User@Tenant.onmicrosoft.com" -O365Pass "TopSecret" -ExcludeSku "tenant:POWER_BI_STANDARD"
+Get-Office365License.ps1 -O365User "User@Tenant.onmicrosoft.com" -O365Pass "TopSecret" -ExcludeSku "tenant:POWER_BI_STANDARD,tenant:FLOW_FREE"
 
 .NOTES
 You need to install the Microsoft Online Services-Sign in assistant (http://go.microsoft.com/fwlink/?LinkID=286152) and Azure Active Directory-Module for Windows PowerShell
 (http://go.microsoft.com/fwlink/p/?linkid=236297) on the probe device in order to get this script to work. More details see link below.
 
 Author:  Marc Debold
-Version: 1.3
+Version: 1.4
 Version History:
+    1.4  26.11.2018  Fixed ExcludeSku & IncludeSku issue
+                     Removed some license counters for less channels
+                     Removed prefix of license channel names
+                     Added detection of sync errors
+                     Updated channel names
     1.3  31.10.2016  Fixed time offset issue
                      Changed XML output
     1.2  31.10.2016  Code cleanup
@@ -110,6 +115,14 @@ $Result = @()
 $SyncStats = @{
     TimeSinceLastDirSync = $null;
     TimeSinceLastPassSync = $null
+}
+
+if ($ExcludeSku -ne $null) {
+    $ExcludeSku = $ExcludeSku -split ","
+}
+
+if ($IncludeSku -ne $null) {
+    $IncludeSku = $IncludeSku -split ","
 }
 
 <# Function to raise error in PRTG style and stop script #>
@@ -186,6 +199,22 @@ $RawSkus = Get-MsolAccountSku
 if ($ShowMySkus) {
     $RawSkus | ft -AutoSize
 } else {
+    # Check for DirSync errors
+    $Fails = @()
+    $isSyncError = 0
+    if (Get-MsolHasObjectsWithDirSyncProvisioningErrors) {
+        $Fails = Get-MsolDirSyncProvisioningError
+        $isSyncError = 1
+    }
+    $Result += @{
+        Channel = "DirSync: Error count";
+        Value = $Fails.Count;
+        Unit = "Count";
+        LimitMaxWarning = 0.5;
+        LimitMode = 1;
+        LimitWarningMsg = "DirSync errors encountered for: $($Fails.DisplayName -join ', ')"
+    }
+
     # Check for DirSync statistics
     try {
         $CompanyInfo = Get-MsolCompanyInformation -ErrorAction Stop
@@ -194,7 +223,7 @@ if ($ShowMySkus) {
     }
     if ($CompanyInfo.DirectorySynchronizationEnabled) {
         $Result += @{
-            Channel = "Time since last DirSync";
+            Channel = "DirSync: Time since last run";
             Value = [math]::Round(((Get-Date).ToUniversalTime() - $CompanyInfo.LastDirSyncTime).TotalHours, 2);
             Unit = "TimeHours";
             Float = 1;
@@ -205,7 +234,7 @@ if ($ShowMySkus) {
     }
     if ($CompanyInfo.PasswordSynchronizationEnabled) {
         $Result += @{
-            Channel = "Time since last password sync";
+            Channel = "DirSync: Time since last password sync";
             Value = [math]::Round(((Get-Date).ToUniversalTime() - $CompanyInfo.LastPasswordSyncTime).TotalHours, 2);
             Unit = "TimeHours";
             Float = 1;
@@ -227,31 +256,32 @@ if ($ShowMySkus) {
             # Fetch stats into array
             foreach ($Sku in $Skus) {
                 $Result += @{
-                    Channel = "$($Sku.AccountSkuId) - Available Licenses";
+                    Channel = "$($Sku.AccountSkuId.SubString($Sku.AccountSkuId.IndexOf(':')+1)) - Free Licenses";
                     Value = [int]($Sku.ActiveUnits - $Sku.ConsumedUnits);
                     LimitMinWarning = 5;
                     LimitMinError = 1;
                     LimitMode = 1
                 }
-                $Result += @{
-                    Channel = "$($Sku.AccountSkuId) - Warning Licenses";
+<#                $Result += @{
+                    Channel = "$($Sku.AccountSkuId.SubString($Sku.AccountSkuId.IndexOf(':')+1)) - Warning Licenses";
                     Value = [int]$Sku.WarnungUnits;
                     LimitMaxWarning = 0;
                     LimitMode = 1
-                }
+                }#>
                 $Result += @{
-                    Channel = "$($Sku.AccountSkuId) - Active Licenses";
+                    Channel = "$($Sku.AccountSkuId.SubString($Sku.AccountSkuId.IndexOf(':')+1)) - Total Licenses";
                     Value = [int]$Sku.ActiveUnits
                 }
-                $Result += @{
-                    Channel = "$($Sku.AccountSkuId) - Consumed Licenses";
+<#                $Result += @{
+                    Channel = "$($Sku.AccountSkuId.SubString($Sku.AccountSkuId.IndexOf(':')+1)) - Consumed Licenses";
                     Value = [int]$Sku.ConsumedUnits
-                }
+                }#>
             }
         } else {
             New-PrtgError -ErrorText "No Skus found"
         }
     }
+
     if ($Result -ne $null) {
         Out-Prtg -MonitoringData $Result
         Start-Sleep 0 # For vscode debugging only
